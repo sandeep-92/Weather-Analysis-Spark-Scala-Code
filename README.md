@@ -14,22 +14,28 @@ import spark.implicits._
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
+
 spark: org.apache.spark.sql.SparkSession = org.apache.spark.sql.SparkSession@50d4a68d
 import spark.implicits._
+
 val mySchema = StructType(Array(
 StructField("sid", StringType, true),
 StructField("date", DateType, true),
 StructField("mtype", StringType, true),
 StructField("value", DoubleType, true)))
+
 mySchema: org.apache.spark.sql.types.StructType = StructType(StructField(sid,StringType,true), StructField(date,DateType,true), StructField(mtype,StringType,true), StructField(value,DoubleType,true))
+
 val df = spark.read
 .schema(mySchema)
 .option("dateFormat", "yyyyMMdd")
 .format("csv")
 .load("/FileStore/tables/2017.csv").cache()
+
 df: org.apache.spark.sql.Dataset[org.apache.spark.sql.Row] = [sid: string, date: date ... 2 more fields]
 df.printSchema()
 df.show(5)
+
 root
  |-- sid: string (nullable = true)
  |-- date: date (nullable = true)
@@ -53,7 +59,9 @@ val dfTmax = df
 .limit(1000)
 .drop("mtype")
 .withColumnRenamed("value", "tmax")
+
 dfTmax: org.apache.spark.sql.DataFrame = [sid: string, date: date ... 1 more field]
+
 dfTmax.show(5)
 +-----------+----------+------+
 |        sid|      date|  tmax|
@@ -68,7 +76,9 @@ only showing top 5 rows
 
 //min temperature of 2017
 val dfTmin = df.filter(col("mtype") === "TMIN").limit(1000).drop("mtype").withColumnRenamed("value", "tmin")
+
 dfTmin: org.apache.spark.sql.DataFrame = [sid: string, date: date ... 1 more field]
+
 dfTmin.show(5)
 +-----------+----------+------+
 |        sid|      date|  tmin|
@@ -83,7 +93,9 @@ only showing top 5 rows
 
 //creating joined dataframe
 val joinedDf = dfTmax.join(dfTmin, Seq("sid", "date"), "inner")
+
 joinedDf: org.apache.spark.sql.DataFrame = [sid: string, date: date ... 2 more fields]
+
 joinedDf.show(5)
 +-----------+----------+------+------+
 |        sid|      date|  tmax|  tmin|
@@ -100,7 +112,9 @@ only showing top 5 rows
 val avgDf = joinedDf
 .select(col("sid"), col("date"), (col("tmax") + col("tmin") / 2))
 .withColumnRenamed("(tmax + (tmin / 2))", "avgTemp")
+
 avgDf: org.apache.spark.sql.DataFrame = [sid: string, date: date ... 1 more field]
+
 avgDf.show(5)
 +-----------+----------+-------+
 |        sid|      date|avgTemp|
@@ -119,8 +133,10 @@ StructField("sid", StringType, true),
 StructField("lat", DoubleType, true),
 StructField("lon", DoubleType, true),
 StructField("name", StringType, true)))
+
 sSchema: org.apache.spark.sql.types.StructType = StructType(StructField(sid,StringType,true), StructField(lat,DoubleType,true), StructField(lon,DoubleType,true), StructField(name,StringType,true))
 //creating rdd of row
+
 import org.apache.spark.SparkContext._
 val filesRdd = spark.sparkContext.textFile("/FileStore/tables/ghcnd_stations-948fb.txt")
 val stationRdd = filesRdd.map{line =>
@@ -132,6 +148,7 @@ val stationRdd = filesRdd.map{line =>
 }
 
 import org.apache.spark.SparkContext._
+
 filesRdd: org.apache.spark.rdd.RDD[String] = /FileStore/tables/ghcnd_stations-948fb.txt MapPartitionsRDD[95] at textFile at command-2199024747775294:3
 stationRdd: org.apache.spark.rdd.RDD[org.apache.spark.sql.Row] = MapPartitionsRDD[96] at map at command-2199024747775294:4
 //create dataframe from rdd and manual schema
@@ -151,7 +168,9 @@ stationDf.show(5)
 only showing top 5 rows
 
 val stationTemp = avgDf.groupBy(col("sid")).agg(avg(col("avgTemp")))
+
 stationTemp: org.apache.spark.sql.DataFrame = [sid: string, avg(avgTemp): double]
+
 stationTemp.show(5)
 +-----------+------------+
 |        sid|avg(avgTemp)|
@@ -165,7 +184,9 @@ stationTemp.show(5)
 only showing top 5 rows
 
 val stationJoined = stationTemp.join(stationDf, "sid")
+
 stationJoined: org.apache.spark.sql.DataFrame = [sid: string, avg(avgTemp): double ... 3 more fields]
+
 stationJoined.show(5)
 +-----------+------------+-------+--------+--------------------+
 |        sid|avg(avgTemp)|    lat|     lon|                name|
